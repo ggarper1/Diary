@@ -2,7 +2,7 @@
 branchName: 'issue-${issue.number}-${issue.title,[0,64],}'
 gitSafeReplacementChar: '-'
 
-baseBranch: 'develop' 
+baseBranch: 'develop'
 
 # Prefijos según label
 branches:
