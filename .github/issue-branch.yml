@@ -21,11 +21,6 @@ branches:
     name: 'develop'
     prTarget: 'develop'
     
-  - label: hotfix
-    prefix: 'hotfix/'
-    name: 'main'
-    prTarget: 'main'
-    
   - label: chore
     prefix: 'chore/'
     name: 'develop'
