@@ -1,0 +1,132 @@
+name: Open/Update Release PR
+
+on:
+  push:
+    branches: [ develop ]
+  workflow_dispatch:
+
+concurrency:
+  group: release-pr-develop-to-main
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release_pr:
+    runs-on: ubuntu-latest
+    env:
+      REPO: ${{ github.repository }}
+      BASE: main
+      FROM: develop
+      RELEASE_BRANCH: release/auto-develop
+      PR_TITLE: "Release: merge develop → main"
+      PR_LABEL: "release"
+      PR_TEMPLATE: ".github/PULL_REQUEST_TEMPLATE/release.md"
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Ensure gh
+        run: |
+          set -e
+          command -v gh >/dev/null 2>&1 || { sudo apt-get update && sudo apt-get install -y gh; }
+          gh --version
+
+      - name: Fetch branches
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --prune origin "$BASE" "$FROM"
+
+      - name: Create or update release temp branch from develop (remote-only)
+        run: |
+          set -euo pipefail
+          if git ls-remote --exit-code --heads origin "${RELEASE_BRANCH}" >/dev/null 2>&1; then
+            echo "Rama ${RELEASE_BRANCH} ya existe. Actualizando a origin/${FROM}…"
+            git switch --detach "origin/${FROM}"
+            git push origin \
+              HEAD:"refs/heads/${RELEASE_BRANCH}" \
+              --force-with-lease="refs/heads/${RELEASE_BRANCH}"
+          else
+            echo "Creando rama ${RELEASE_BRANCH} desde origin/${FROM}…"
+            git switch --detach "origin/${FROM}"
+            git push origin \
+              HEAD:"refs/heads/${RELEASE_BRANCH}"
+          fi
+
+      - name: Find existing release PR (robusto)
+        id: findpr
+        run: |
+          set -euo pipefail
+          # 1) prueba con repo:branch
+          PR_NUM=$(gh pr list --repo "$REPO" --state open \
+                     --base "$BASE" --head "$REPO:${RELEASE_BRANCH}" \
+                     --json number --jq '.[0].number // empty')
+          # 2) fallback: solo branch
+          if [ -z "$PR_NUM" ]; then
+            PR_NUM=$(gh pr list --repo "$REPO" --state open \
+                       --base "$BASE" --head "${RELEASE_BRANCH}" \
+                       --json number --jq '.[0].number // empty')
+          fi
+          echo "pr_number=${PR_NUM}" >> "$GITHUB_OUTPUT"
+
+      - name: Create PR if missing (tolerante a 'already exists')
+        id: create_or_skip
+        run: |
+          set -euo pipefail
+          if [ -z "${{ steps.findpr.outputs.pr_number }}" ]; then
+            echo "No hay PR abierta. Intentando crear PR draft ${RELEASE_BRANCH} -> ${BASE}…"
+            set +e
+            if [ -f "$PR_TEMPLATE" ]; then
+              gh pr create --repo "$REPO" --base "$BASE" --head "$RELEASE_BRANCH" \
+                --title "$PR_TITLE" --body-file "$PR_TEMPLATE" --label "$PR_LABEL" --draft
+            else
+              gh pr create --repo "$REPO" --base "$BASE" --head "$RELEASE_BRANCH" \
+                --title "$PR_TITLE" --body "Auto-generated release PR" --label "$PR_LABEL" --draft
+            fi
+            STATUS=$?
+            set -e
+            if [ $STATUS -ne 0 ]; then
+              echo "Creación falló (posible PR ya existente). Re-buscando…"
+            fi
+          else
+            echo "Ya existía PR #${{ steps.findpr.outputs.pr_number }}. Saltando creación."
+          fi
+
+          # (Re)descubre el número definitivo (por si 'already exists')
+          PR_NUM=$(gh pr list --repo "$REPO" --state open \
+                     --base "$BASE" --head "$REPO:${RELEASE_BRANCH}" \
+                     --json number --jq '.[0].number // empty')
+          if [ -z "$PR_NUM" ]; then
+            PR_NUM=$(gh pr list --repo "$REPO" --state open \
+                       --base "$BASE" --head "${RELEASE_BRANCH}" \
+                       --json number --jq '.[0].number // empty')
+          fi
+          echo "pr_number=${PR_NUM}" >> "$GITHUB_OUTPUT"
+          [ -n "$PR_NUM" ] || { echo "❌ No se encontró/creó la PR"; exit 1; }
+
+      - name: Ensure label & apply template (update title/body)
+        run: |
+          set -euo pipefail
+          PR="${{ steps.create_or_skip.outputs.pr_number }}"
+          # crea label si falta (idempotente)
+          gh label create "$PR_LABEL" --color BFD4F2 --description "Release PR develop → main" || true
+          # añade label si no está
+          gh pr edit "$PR" --repo "$REPO" --add-label "$PR_LABEL" || true
+          # aplica título/body
+          if [ -f "$PR_TEMPLATE" ]; then
+            gh pr edit "$PR" --repo "$REPO" --title "$PR_TITLE" --body-file "$PR_TEMPLATE"
+          else
+            gh pr edit "$PR" --repo "$REPO" --title "$PR_TITLE"
+          fi
+
+      - name: Output summary
+        run: |
+          set -euo pipefail
+          URL=$(gh pr view "${{ steps.create_or_skip.outputs.pr_number }}" --repo "$REPO" --json url --jq .url)
+          echo "🔗 Release PR: ${URL}" >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    <title>Audio Diary</title>
+</head>
+<body>
+    <div class="container">
+        <h1>📔 Audio Diary</h1>
+
+        <!-- Main Menu -->
+        <div id="mainMenu" class="screen active">
+            <div class="main-menu">
+                <button class="menu-btn" onclick="showScreen('newEntry')">
+                    ➕ Add New Entry
+                </button>
+                <button class="menu-btn" onclick="showScreen('viewEntries')">
+                    📖 View Previous Entries
+                </button>
+            </div>
+        </div>
+
+        <!-- New Entry Screen -->
+        <div id="newEntry" class="screen">
+            <button class="back-btn" onclick="showScreen('mainMenu')">← Back</button>
+            <h2>Add New Diary Entry</h2>
+            
+            <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+                <p style="font-size: 1.2em; margin-bottom: 10px;">🎤 Click or drag audio files here</p>
+                <p style="color: #6c757d;">Supports MP3, WAV, M4A, OGG</p>
+            </div>
+            <input type="file" id="fileInput" accept="audio/*" multiple>
+
+            <div class="file-list" id="fileList"></div>
+
+            <div class="error-message" id="errorMessage"></div>
+
+            <div class="progress-container" id="progressContainer">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill">0%</div>
+                </div>
+            </div>
+
+            <button class="save-btn" id="saveBtn" onclick="saveEntries()" disabled>
+                💾 Save Entries
+            </button>
+        </div>
+
+        <!-- View Entries Screen -->
+        <div id="viewEntries" class="screen">
+            <button class="back-btn" onclick="showScreen('mainMenu')">← Back</button>
+            <div class="calendar">
+                <div class="calendar-header">
+                    <h2 id="calendarMonth"></h2>
+                    <div class="calendar-nav">
+                        <button onclick="changeMonth(-1)">← Prev</button>
+                        <button onclick="changeMonth(0)">Today</button>
+                        <button onclick="changeMonth(1)">Next →</button>
+                    </div>
+                </div>
+                <div class="calendar-grid" id="calendarGrid"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Entries -->
+    <div class="modal" id="entriesModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalDate"></h2>
+                <button class="close-modal" onclick="closeModal()">×</button>
+            </div>
+            <div id="entriesList"></div>
+            <div id="entryDetail" class="entry-detail" style="display: none;"></div>
+        </div>
+    </div>
+</body>
+</html>

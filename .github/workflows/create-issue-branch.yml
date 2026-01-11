@@ -1,0 +1,22 @@
+name: Create Issue Branch
+on:
+  issues:
+    types: [assigned]
+  issue_comment:
+    types: [created]
+  pull_request:
+    types: [ opened, closed ]
+    
+jobs:
+  cib:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Create Issue Branch
+        uses: robvanderleek/create-issue-branch@v1.9.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          LOG_LEVEL: DEBUG

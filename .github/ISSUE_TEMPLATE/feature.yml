@@ -1,0 +1,11 @@
+name: Feature
+description: Nueva funcionalidad
+labels: ["feature"]
+body:
+  - type: textarea
+    id: desc
+    attributes: { label: Descripción, placeholder: Qué problema resuelve... }
+    validations: { required: true }
+  - type: textarea
+    id: criterio
+    attributes: { label: Criterios de aceptación }

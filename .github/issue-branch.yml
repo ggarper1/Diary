@@ -1,0 +1,59 @@
+# Nombre base con número y slug del título (minúsculas, 64 chars)
+branchName: 'issue-${issue.number}-${issue.title,[0,64],}'
+gitSafeReplacementChar: '-'
+
+baseBranch: 'develop' 
+
+# Prefijos según label
+branches:
+  - label: feat
+    prefix: 'feature/'
+    name: 'develop'
+    prTarget: 'develop' 
+    
+  - label: feature
+    prefix: 'feature/'
+    name: 'develop'
+    prTarget: 'develop'
+    
+  - label: bug
+    prefix: 'fix/'
+    name: 'develop'
+    prTarget: 'develop'
+    
+  - label: hotfix
+    prefix: 'hotfix/'
+    name: 'main'
+    prTarget: 'main'
+    
+  - label: chore
+    prefix: 'chore/'
+    name: 'develop'
+    prTarget: 'develop' 
+    
+  - label: docs
+    prefix: 'docs/'
+    name: 'develop'
+    prTarget: 'develop'
+    
+  - label: refactor
+    prefix: 'refactor/'
+    name: 'develop'
+    prTarget: 'develop'
+    
+  # Fallback para cualquier otro tipo de issue:
+  - label: '*'
+    prefix: 'issue/'
+    name: 'develop'
+    prTarget: 'develop' 
+
+# Opcional: abrir PR en draft automáticamente
+openDraftPR: true
+autoCloseIssue: true
+autoDeleteBranch: true
+
+# copiar metadata
+copyIssueLabelsToPR: true
+copyIssueDescriptionToPR: true
+copyIssueAssigneeToPR: true
+copyIssueMilestoneToPR: true
